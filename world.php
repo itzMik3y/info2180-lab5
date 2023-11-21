@@ -6,54 +6,53 @@ $dbname = 'world';
 
 $conn = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
 
-// Check if the 'country' GET variable is set
 if (isset($_GET['country'])) {
-    $country = $_GET['country'];
+  $country = $_GET['country'];
 
-    // Prepare the SQL statement with a placeholder for the country name
-    $stmt = $conn->prepare("SELECT * FROM countries WHERE name LIKE :country");
+  // Check if 'lookup' is set to 'cities'
+  if (isset($_GET['lookup']) && $_GET['lookup'] === 'cities') {
+      // SQL to fetch cities in the country
+      $stmt = $conn->prepare("SELECT cities.name, cities.district, cities.population 
+                              FROM cities 
+                              JOIN countries ON cities.country_code = countries.code 
+                              WHERE countries.name LIKE :country");
+       $country = "%$country%";
+       $stmt->bindParam(':country', $country, PDO::PARAM_STR);
+       $stmt->execute();
+       $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Use '%' wildcards for partial matching, and bind the country name to the placeholder
-    $country = "%$country%";
-    $stmt->bindParam(':country', $country, PDO::PARAM_STR);
-
-    // Execute the prepared statement
-    $stmt->execute();
-
-    // Fetch the results
-    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} else {
-    // If 'country' GET variable is not set, select all countries
-    $stmt = $conn->query("SELECT * FROM countries");
-    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+       echo '<table>';
+        echo '<tr><th>Name</th><th>District</th><th>Population</th></tr>';
+        foreach ($results as $row) {
+            echo '<tr>';
+            echo '<td>' . htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td>' . htmlspecialchars($row['district'], ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td>' . htmlspecialchars($row['population'], ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '</tr>';
+        }
+        echo '</table>';
+  } else {
+      // SQL to fetch country information
+      $stmt = $conn->prepare("SELECT * FROM countries WHERE name LIKE :country");
+      $country = "%$country%";
+      $stmt->bindParam(':country', $country, PDO::PARAM_STR);
+      $stmt->execute();
+      $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+  if (!isset($_GET['lookup']) || $_GET['lookup'] !== 'cities') {
+    echo '<table>';
+    echo '<tr><th>Country Name</th><th>Continent</th><th>Independence Year</th><th>Head of State</th></tr>';
+    foreach ($results as $row) {
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($row['continent'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($row['independence_year'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($row['head_of_state'], ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '</tr>';
+    }
+    echo '</table>';
 }
-// foreach ($results as $row) {
-//   echo '<tr>';
-//   echo '<td>' . htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') . '</td>';
-//   echo '<td>' . htmlspecialchars($row['continent'], ENT_QUOTES, 'UTF-8') . '</td>';
-//   echo '<td>' . htmlspecialchars($row['independence_year'], ENT_QUOTES, 'UTF-8') . '</td>';
-//   echo '<td>' . htmlspecialchars($row['head_of_state'], ENT_QUOTES, 'UTF-8') . '</td>';
-//   echo '</tr>';
-// }
+}
+
 ?>
-<table>
-  <tr>
-    <th>Country Name</th>
-    <th>Continent</th>
-    <th>Independence Year</th>
-    <th>Head of State</th>
-  </tr>
-  <?php foreach ($results as $row): ?>
-    <tr>
-      <td><?= htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') ?></td>
-      <td><?= htmlspecialchars($row['continent'], ENT_QUOTES, 'UTF-8') ?></td>
-      <td><?= htmlspecialchars($row['independence_year'], ENT_QUOTES, 'UTF-8') ?></td>
-      <td><?= htmlspecialchars($row['head_of_state'], ENT_QUOTES, 'UTF-8') ?></td>
-    </tr>
-  <?php endforeach; ?>
-</table>
-<!-- <ul>
-<?php foreach ($results as $row): ?>
-  <li><?= $row['name'] . ' is ruled by ' . $row['head_of_state']; ?></li>
-<?php endforeach; ?>
-</ul> -->
+
